@@ -7,14 +7,49 @@ Cursor cursor = null;
 void setup() {
     size(width, height);
     grid = new Grid(width / cell_size, height / cell_size);
-    grid.setWall(grid.n_rows/4, grid.n_cols/4, grid.n_rows/4, grid.n_cols/4*3);
-    grid.setWall(grid.n_rows/4, grid.n_cols/4*3+1, grid.n_rows/4*3, grid.n_cols/4*3+1);
-    grid.setWall(grid.n_rows/4*3+1, grid.n_cols/4+1, grid.n_rows/4*3+1, grid.n_cols/4*3+1);
-    grid.setWall(grid.n_rows/4+1, grid.n_cols/4, grid.n_rows/4*3+1, grid.n_cols/4);
-    // grid.setWallState(0, 0);
-    // grid.setWallState(1, 1);
-    // grid.setWallState(2, 0);
-    // grid.setWallState(3, 1);
+
+    // square
+    // grid.addAnchor(grid.n_rows/4, grid.n_cols/4);
+    // grid.addAnchor(grid.n_rows/4, grid.n_cols/4*3);
+    // grid.addAnchor(grid.n_rows/4*3, grid.n_cols/4);
+    // grid.addAnchor(grid.n_rows/4*3, grid.n_cols/4*3);
+    // grid.addWall(0, 1);
+    // grid.addWall(1, 3);
+    // grid.addWall(3, 2);
+    // grid.addWall(2, 0);
+    
+    int nr = grid.n_rows;
+    int nc = grid.n_cols;
+    grid.addAnchor(1 + nr/4, 1 + nc/8);
+    grid.addAnchor(1 + nr/4, 1 + nc/8 + nc/8*3);
+    grid.addAnchor(1 + nr/4, 1 + nc/8 + 2 * nc/8*3);
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8);
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8 + int(nc*3/16));
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8 + nc/8*3);
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8 + nc/8*3 + int(nc*3/16));
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8 + 2 * nc/8*3);
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8);
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + int(nc*3/16));
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + nc/8*3 + int(nc*3/16));
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + 2 * nc/8*3);
+   
+    grid.addWall(0, 1);
+    grid.addWall(1, 2);
+    grid.addWall(0, 3);
+    grid.addWall(1, 5);
+    grid.addWall(2, 7);
+    grid.addWall(3, 4);
+    grid.addWall(4, 5);
+    grid.addWall(5, 6);
+    grid.addWall(6, 7);
+    grid.addWall(3, 8);
+    grid.addWall(4, 9);
+    grid.addWall(6, 10);
+    grid.addWall(7, 11);
+    grid.addWall(8, 9);
+    grid.addWall(9, 10);
+    grid.addWall(10, 11);
+    
     grid.setZones();
     //grid.showZones();
 }
@@ -28,21 +63,31 @@ void reset() {
 }
 
 void mousePressed() {
-    PVector gc = grid.getCell(mouseX, mouseY);
-    if (cursor == null) {
-        cursor = new Cursor(gc);
+    if (mouseButton == LEFT) {
+        PVector mouse_gc = grid.getCell(mouseX, mouseY);
+        if (cursor == null && grid.get(mouse_gc).isStartable()) {
+            cursor = new Cursor(mouse_gc);
+        }
+        if (cursor != null) {
+            cursor.pick(mouse_gc);
+        }
+    } else if (mouseButton == RIGHT) {
+        if (cursor != null) {
+            cursor.back(10);
+        }        
     }
-    cursor.pick(gc);
 }
 
-void mouseDragged() {
-    if (cursor.is_picked) {
+void mouseDragged() {    
+    if (cursor != null && cursor.is_picked) {
         cursor.move(grid.getCell(mouseX, mouseY));
     }
 }
 
 void mouseReleased() {
-    cursor.is_picked = false;
+    if (cursor != null) {
+        cursor.is_picked = false;
+    }
 }
 
 void keyPressed() {
@@ -70,12 +115,14 @@ class Grid {
     int n_rows, n_cols;
     ArrayList<ArrayList> wall_gcs;
     ArrayList<Integer> wall_states; 
+    ArrayList<PVector> anchor_gcs;
 
     Grid(int nr, int nc) {
         n_rows = nr;
         n_cols = nc;
         wall_gcs = new ArrayList();
         wall_states = new ArrayList();
+        anchor_gcs = new ArrayList();
         cells = new Cell[n_rows + 2][n_cols + 2]; // add 6-cell padding to each side
         for (int i = 0; i < n_rows + 2; i++) {
             for (int j = 0; j < n_cols + 2; j++) {
@@ -96,21 +143,42 @@ class Grid {
         return new PVector(int(y / cell_size) + 1, int(x / cell_size) + 1);
     }
 
-    void setWall(int i1, int j1, int i2, int j2) {
-        ArrayList cells = new ArrayList();
-        if (abs(i1-i2) >= abs(j1-j2)) {
-            for (int i = i1; i <= i2; i++) {
-                get(i, j1).setWall(wall_gcs.size());
-                cells.add(new PVector(i, j1));
+    // a wall links an anchor to an other (they must be on same row or col)
+    void addWall(int a1, int a2) {
+        ArrayList wall_cells = new ArrayList();
+        PVector a1_gc = anchor_gcs.get(a1);
+        PVector a2_gc = anchor_gcs.get(a2);
+        assert(a1_gc.x == a2_gc.x || a1_gc.y == a2_gc.y);
+        if (abs(a1_gc.x - a2_gc.x) > abs(a1_gc.y - a2_gc.y)) {
+            if (a1_gc.x > a2_gc.x) { // swap
+                PVector tmp = a1_gc;
+                a1_gc = a2_gc;
+                a2_gc = tmp;
+            }
+            int j = int(a1_gc.y);
+            for (int i = int(a1_gc.x)+1; i < int(a2_gc.x); i++) {
+                get(i, j).setWall(wall_gcs.size());
+                wall_cells.add(new PVector(i, j));
             }
         } else {
-            for (int j = j1; j <= j2; j++) {
-                get(i1, j).setWall(wall_gcs.size());
-                cells.add(new PVector(i1, j));
+            if (a1_gc.y > a2_gc.y) { // swap
+                PVector tmp = a1_gc;
+                a1_gc = a2_gc;
+                a2_gc = tmp;
+            }
+            int i = int(a1_gc.x);
+            for (int j = int(a1_gc.y)+1; j < int(a2_gc.y); j++) {
+                get(i, j).setWall(wall_gcs.size());
+                wall_cells.add(new PVector(i, j));
             }
         }
-        wall_gcs.add(cells);
+        wall_gcs.add(wall_cells);
         wall_states.add(-1);
+    }
+
+    void addAnchor(int i, int j) {
+        get(i, j).setAnchor(anchor_gcs.size());
+        anchor_gcs.add(new PVector(i, j));
     }
 
     void setZones() {
@@ -164,15 +232,15 @@ class Grid {
         return wall_states.get(wid);
     }
 
-    void resetWallStates() {
-        for (int i = 0; i < wall_states.size(); i++) {
-            wall_states.set(i, -1);
-        }
-    }
-
     void updateWallStates() {
         for (int i = 0; i < wall_states.size(); i++) {
             setWallState(i, wall_states.get(i));
+        }
+    }
+
+    void resetWallStates() {
+        for (int i = 0; i < wall_states.size(); i++) {
+            wall_states.set(i, -1);
         }
     }
 
@@ -182,6 +250,7 @@ class Grid {
                 get(i, j).reset();
             }
         }
+        resetWallStates();
     }
 
 }
@@ -189,7 +258,7 @@ class Grid {
 class Cell {
     
     PVector pos;    
-    int wall_id, wall_state, zone_id;
+    int wall_id, wall_state, zone_id, anchor_id;
     boolean has_trace, has_cursor;
 
     Cell(float x, float y) {
@@ -197,17 +266,31 @@ class Cell {
         wall_id = -1; // -1: no wall, 0--n: walls
         wall_state = -1; // -1: not set, 0:bad, 1:good
         zone_id = -1; // -1: no zone, 0--n: zones
+        anchor_id = -1;
         has_trace = false;
         has_cursor = false;
         display();
     } 
 
+    boolean isStartable() {
+        return !isWall() && !isAnchor();
+    }
+
     boolean isWall() {
         return wall_id >= 0;
     }
 
+    boolean isAnchor() {
+        return anchor_id >= 0;
+    }
+
+    void setAnchor(int id) {
+        anchor_id = id;
+        display();
+    }
+
     boolean isZoneFree() {
-        return !isWall() && zone_id < 0;
+        return !isWall() && zone_id < 0 && !isAnchor();
     }
    
     void setTrace(boolean b) {
@@ -243,6 +326,8 @@ class Cell {
             fill(255, 255, 0); // yellow
         } else if (has_trace) {
             fill(0, 0, 255); // blue
+        } else if (isAnchor()) {
+            fill(255, 0, 255); // purple
         } else if (isWall()) {
             if (wall_state == -1) {
                 fill(255); // default wall: white
@@ -252,7 +337,7 @@ class Cell {
                 fill(0, 255, 0); // wall ok: green
             }
         } else {
-            fill(0);
+            fill(0); // black
         }
         rect(pos.x, pos.y, cell_size, cell_size);
     }
@@ -303,23 +388,28 @@ class Cursor {
     void move(PVector new_gc) {        
         int new_i = int(new_gc.x);
         int new_j = int(new_gc.y);
-        if (eq(curr_gc, new_gc) || new_i < 1 || new_j < 1 ||
-            new_i > grid.n_rows || new_j > grid.n_cols) { return; }
-        //println("move (" + int(new_gc.x) + "," + int(new_gc.y) + ")");
-        set(false);
-        completeTrace(new_gc);
-        curr_gc = new_gc.get();
-        //println("curr (" + int(curr_gc.x) + "," + int(curr_gc.y) + ")");
-        set(true);
+        if (eq(curr_gc, new_gc)) {
+            return;
+        }
+        if (new_i < 1 || new_j < 1 || new_i > grid.n_rows || 
+            new_j > grid.n_cols || grid.get(new_gc).isAnchor()) { 
+            is_picked = false;
+            return; 
+        }
+        if (completeTrace(new_gc)) {
+            set(false);
+            curr_gc = new_gc.get();
+            set(true);
+        }
     }
 
-    void completeTrace(PVector new_gc) {
+    boolean completeTrace(PVector new_gc) {
         // mid_gc is a vector that we'll move stepwise in the direction of new_gc
         PVector mid_gc = curr_gc.get();
         int N = int(max(abs(new_gc.x - mid_gc.x), abs(new_gc.y - mid_gc.y)));
         if (N >= 2) {
-            grid.get(mid_gc).setTrace(true);
-            trace_history.add(mid_gc.get());
+            ArrayList<PVector> mid_gcs = new ArrayList();
+            mid_gcs.add(mid_gc.get());
             for (int n = 0; n < N; n++) {
                 PVector d = new_gc.get();
                 d.sub(mid_gc);
@@ -327,16 +417,24 @@ class Cursor {
                 mid_gc.add(d);
                 mid_gc.x = round(mid_gc.x);
                 mid_gc.y = round(mid_gc.y);
-                grid.get(mid_gc).setTrace(true);
-                //println("complete (" + int(mid_gc.x) + "," + int(mid_gc.y) + ")");
-                detectWallCrossing(mid_gc);
-                trace_history.add(mid_gc.get());
+                if (grid.get(mid_gc).isAnchor()) {
+                    is_picked = false;
+                    return false;
+                }
+                mid_gcs.add(mid_gc.get());
             }
+            for (int i = 0; i < mid_gcs.size(); i++) {
+                mid_gc = mid_gcs.get(i);
+                grid.get(mid_gc).setTrace(true);
+                detectWallCrossing(mid_gc);
+                trace_history.add(mid_gc.get());                
+            } 
         } else {
             detectWallCrossing(new_gc);
             grid.get(curr_gc).setTrace(true);
             trace_history.add(curr_gc.get());
         }
+        return true;
     }
 
     void detectWallCrossing(PVector new_gc) {
@@ -351,7 +449,7 @@ class Cursor {
         } else {
             if (curr_wall_id >= 0) { // was in wall, got out
                 //println("exiting wall " + curr_wall_id + " at (" + i + "," + j + ")");
-                //println("prev zone = " + prev_zone_id + " , curr zone = " + grid.get(i, j).zone_id);
+                //println("prev zone = " + prev_zone_id + " , curr zone = " + grid.get(new_gc).zone_id);
                 if (grid.get(new_gc).zone_id != prev_zone_id && 
                     grid.getWallState(curr_wall_id) == -1) {
                     grid.setWallState(curr_wall_id, 1);
@@ -384,6 +482,7 @@ class Cursor {
         prev_zone_id = -1;
         for (int i = 0; i < trace_history.size(); i++) {
             detectWallCrossing(trace_history.get(i));
+            grid.get(trace_history.get(i)).setTrace(true);
         }
         detectWallCrossing(cursor.curr_gc);
         grid.updateWallStates();
