@@ -50,6 +50,8 @@ void setup() {
     grid.addWall(9, 10);
     grid.addWall(10, 11);
     
+    grid.finalizeWallAnchors();
+
     grid.setZones();
     //grid.showZones();
 }
@@ -159,7 +161,7 @@ class Grid {
             for (int i = int(a1_gc.x)+1; i < int(a2_gc.x); i++) {
                 get(i, j).setWall(wall_gcs.size());
                 wall_cells.add(new PVector(i, j));
-            }
+            }            
         } else {
             if (a1_gc.y > a2_gc.y) { // swap
                 PVector tmp = a1_gc;
@@ -213,11 +215,14 @@ class Grid {
     }
 
     void showZones() {
+        int max_zone_id = -1;
         for (int i = 0; i < n_rows + 2; i++) {
             for (int j = 0; j < n_cols + 2; j++) {
                 get(i, j).setZoneColor();
+                max_zone_id = max(max_zone_id, get(i, j).zone_id);
             }
-        }        
+        }
+        println("found " + (max_zone_id+1) + " zones");
     }
 
     void setWallState(int wid, int state) {
@@ -251,6 +256,16 @@ class Grid {
             }
         }
         resetWallStates();
+    }
+
+    // for each wall, set first and last cell as anchors
+    void finalizeWallAnchors() {
+        int anchor_id = anchor_gcs.size();
+        for (int i = 0; i < wall_gcs.size(); i++) {
+            ArrayList<PVector> gcs = wall_gcs.get(i);
+            get(gcs.get(0)).setAnchor(anchor_id++);
+            get(gcs.get(gcs.size()-1)).setAnchor(anchor_id++);            
+        }
     }
 
 }
@@ -321,16 +336,16 @@ class Cell {
     }
 
     void display() {
-        stroke(127);
+        stroke(80); // grey outline
         if (has_cursor) {
             fill(255, 255, 0); // yellow
         } else if (has_trace) {
             fill(0, 0, 255); // blue
         } else if (isAnchor()) {
-            fill(255, 0, 255); // purple
+            fill(127); // grey
         } else if (isWall()) {
             if (wall_state == -1) {
-                fill(255); // default wall: white
+                fill(225); // wall default: white
             } else if (wall_state == 0) {
                 fill(255, 0, 0); // wall bad: red
             } else if (wall_state == 1) {
