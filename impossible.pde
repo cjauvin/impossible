@@ -57,7 +57,7 @@ void setup() {
     grid.addWall(10, 11);
     
     grid.finalizeWallAnchors();
-    grid.setZones();
+    grid.findZones();
     //grid.showZones();
 }
 
@@ -199,12 +199,12 @@ class Grid {
         anchor_gcs.add(new PVector(i, j));
     }
 
-    void setZones() {
+    void findZones() {
         int zone_id = 0;
         for (int i = 0; i < n_rows + 2; i++) {
             for (int j = 0; j < n_cols + 2; j++) {
                 if (get(i, j).isZoneFree()) {
-                    zoneFill(i, j, zone_id);
+                    zoneFill(new PVector(i, j), zone_id);
                     zone_id += 1;
                 }
             }
@@ -213,21 +213,28 @@ class Grid {
     }
 
     // find distinct zones by flood filling
-    void zoneFill(int i, int j, int zone_id) {
-        get(i, j).zone_id = zone_id;
-        if (i > 0 && get(i-1, j).isZoneFree()) {
-            zoneFill(i-1, j, zone_id);
-        } 
-        if (i < n_rows+1 && get(i+1, j).isZoneFree()) {
-            zoneFill(i+1, j, zone_id);            
-        } 
-        if (j > 0 && get(i, j-1).isZoneFree()) {
-            zoneFill(i, j-1, zone_id);
-        } 
-        if (j < n_cols+1 && get(i, j+1).isZoneFree()) {
-            zoneFill(i, j+1, zone_id);
+    void zoneFill(PVector start_gc, int zone_id) {
+        ArrayList<PVector> frontier = new ArrayList();
+        frontier.add(start_gc);
+        while (frontier.size() > 0) {
+            PVector gc = frontier.remove(0);
+            if (!get(gc).isZoneFree()) continue;
+            int i = int(gc.x);
+            int j = int(gc.y);
+            get(i, j).zone_id = zone_id;
+            if (i > 0 && get(i-1, j).isZoneFree()) {
+                frontier.add(new PVector(i-1, j));
+            } 
+            if (i < n_rows+1 && get(i+1, j).isZoneFree()) {
+                frontier.add(new PVector(i+1, j));
+            } 
+            if (j > 0 && get(i, j-1).isZoneFree()) {
+                frontier.add(new PVector(i, j-1));
+            } 
+            if (j < n_cols+1 && get(i, j+1).isZoneFree()) {
+                frontier.add(new PVector(i, j+1));
+            }     
         }
-        
     }
 
     void showZones() {
