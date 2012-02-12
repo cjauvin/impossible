@@ -1,25 +1,31 @@
 Grid grid = null;
 int width = 600;
-int height = 600;
+int height = 500;
 int cell_size = 5;
-Cursor cursor = null;
+Cursor[] cursors = null;
+int last_picked_cursor = -1;
+int n_steps_back = 10;
 
 void setup() {
-    size(width, height);
-    grid = new Grid(width / cell_size, height / cell_size);
 
-    // square
-    // grid.addAnchor(grid.n_rows/4, grid.n_cols/4);
-    // grid.addAnchor(grid.n_rows/4, grid.n_cols/4*3);
-    // grid.addAnchor(grid.n_rows/4*3, grid.n_cols/4);
-    // grid.addAnchor(grid.n_rows/4*3, grid.n_cols/4*3);
-    // grid.addWall(0, 1);
-    // grid.addWall(1, 3);
-    // grid.addWall(3, 2);
-    // grid.addWall(2, 0);
-    
+    size(width, height);
+    grid = new Grid(height / cell_size, width / cell_size);
+
     int nr = grid.n_rows;
     int nc = grid.n_cols;
+
+    // square
+    /*
+    grid.addAnchor(nr/4+1, nc/4);
+    grid.addAnchor(nr/4+1, nc/4*3+1);
+    grid.addAnchor(nr/4*3+1, nc/4);
+    grid.addAnchor(nr/4*3+1, nc/4*3+1);
+    grid.addWall(0, 1);
+    grid.addWall(1, 3);
+    grid.addWall(3, 2);
+    grid.addWall(2, 0);
+    */
+
     grid.addAnchor(1 + nr/4, 1 + nc/8);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + nc/8*3);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + 2 * nc/8*3);
@@ -51,7 +57,6 @@ void setup() {
     grid.addWall(10, 11);
     
     grid.finalizeWallAnchors();
-
     grid.setZones();
     //grid.showZones();
 }
@@ -60,46 +65,57 @@ void draw() {
 }
 
 void reset() {
-    cursor = null;
+    cursors = null;
     grid.reset();
 }
 
 void mousePressed() {
     if (mouseButton == LEFT) {
         PVector mouse_gc = grid.getCell(mouseX, mouseY);
-        if (cursor == null && grid.get(mouse_gc).isStartable()) {
-            cursor = new Cursor(mouse_gc);
+        if (cursors == null && grid.get(mouse_gc).isStartable()) {
+            cursors = new Cursor[2];
+            cursors[0] = new Cursor(mouse_gc);
+            cursors[1] = new Cursor(mouse_gc);
         }
-        if (cursor != null) {
-            cursor.pick(mouse_gc);
-        }
+        if (cursors != null) {
+            if (cursors[0].pick(mouse_gc)) {
+                last_picked_cursor = 0;
+            } else if (cursors[1].pick(mouse_gc)) {
+                last_picked_cursor = 1;
+            }
+        }        
     } else if (mouseButton == RIGHT) {
-        if (cursor != null) {
-            cursor.back(10);
+        if (cursors != null) {
+            cursors[last_picked_cursor].back(n_steps_back);
         }        
     }
 }
 
-void mouseDragged() {    
-    if (cursor != null && cursor.is_picked) {
-        cursor.move(grid.getCell(mouseX, mouseY));
-    }
+//void mouseMoved() {    
+void mouseDragged() {
+    if (cursors != null) {
+        if (cursors[0].is_picked) {
+            cursors[0].move(grid.getCell(mouseX, mouseY));
+        } else if (cursors[1].is_picked) {
+            cursors[1].move(grid.getCell(mouseX, mouseY));
+        }
+     }
 }
 
 void mouseReleased() {
-    if (cursor != null) {
-        cursor.is_picked = false;
+    if (cursors != null) {
+        cursors[0].is_picked = false;
+        cursors[1].is_picked = false;
     }
 }
 
 void keyPressed() {
     if (key == 'r') {
-        //println("*reset*");
         reset();
     } else if (key == 'b') {
-        if (cursor != null) {
-            cursor.back(10);
-        }
+        if (cursors != null) {
+            cursors[last_picked_cursor].back(n_steps_back);
+        }        
     }
 }
 
@@ -150,7 +166,7 @@ class Grid {
         ArrayList wall_cells = new ArrayList();
         PVector a1_gc = anchor_gcs.get(a1);
         PVector a2_gc = anchor_gcs.get(a2);
-        assert(a1_gc.x == a2_gc.x || a1_gc.y == a2_gc.y);
+        //assert(a1_gc.x == a2_gc.x || a1_gc.y == a2_gc.y);
         if (abs(a1_gc.x - a2_gc.x) > abs(a1_gc.y - a2_gc.y)) {
             if (a1_gc.x > a2_gc.x) { // swap
                 PVector tmp = a1_gc;
@@ -395,61 +411,53 @@ class Cursor {
         grid.get(i, j+1).setCursor(b);
     }
 
-    void pick(PVector mouse_gc) {
+    boolean pick(PVector mouse_gc) {
         is_picked = (curr_gc.x-1 <= mouse_gc.x && mouse_gc.x <= curr_gc.x+1 &&
                      curr_gc.y-1 <= mouse_gc.y && mouse_gc.y <= curr_gc.y+1);
+        return is_picked;
     }
 
     void move(PVector new_gc) {        
         int new_i = int(new_gc.x);
         int new_j = int(new_gc.y);
-        if (eq(curr_gc, new_gc)) {
+        if (eq(curr_gc, new_gc)) { // below cell size threshold
             return;
         }
+        // detect boundaries and anchor cells
         if (new_i < 1 || new_j < 1 || new_i > grid.n_rows || 
             new_j > grid.n_cols || grid.get(new_gc).isAnchor()) { 
             is_picked = false;
             return; 
         }
-        if (completeTrace(new_gc)) {
-            set(false);
-            curr_gc = new_gc.get();
-            set(true);
-        }
-    }
-
-    boolean completeTrace(PVector new_gc) {
-        // mid_gc is a vector that we'll move stepwise in the direction of new_gc
-        PVector mid_gc = curr_gc.get();
-        int N = int(max(abs(new_gc.x - mid_gc.x), abs(new_gc.y - mid_gc.y)));
-        if (N >= 2) {
-            ArrayList<PVector> mid_gcs = new ArrayList();
-            mid_gcs.add(mid_gc.get());
-            for (int n = 0; n < N; n++) {
-                PVector d = new_gc.get();
-                d.sub(mid_gc);
-                d.normalize();
-                mid_gc.add(d);
-                mid_gc.x = round(mid_gc.x);
-                mid_gc.y = round(mid_gc.y);
-                if (grid.get(mid_gc).isAnchor()) {
-                    is_picked = false;
-                    return false;
-                }
-                mid_gcs.add(mid_gc.get());
+        // dist with curr cell; n=1 -> adjacent move (no need to interpolate)
+        int n = int(max(abs(new_gc.x - curr_gc.x), abs(new_gc.y - curr_gc.y)));
+        PVector mid_gc = curr_gc.get(); // mid_gc is a vector that we'll move stepwise in the direction of new_gc
+        ArrayList<PVector> mid_gcs = new ArrayList();
+        mid_gcs.add(mid_gc.get());
+        for (int i = 0; i < n-1; i++) { // interpolation
+            PVector d = new_gc.get();
+            d.sub(mid_gc);
+            d.normalize();
+            mid_gc.add(d);
+            mid_gc.x = round(mid_gc.x);
+            mid_gc.y = round(mid_gc.y);
+            if (grid.get(mid_gc).isAnchor()) {
+                is_picked = false;
+                return;
             }
-            for (int i = 0; i < mid_gcs.size(); i++) {
-                mid_gc = mid_gcs.get(i);
-                grid.get(mid_gc).setTrace(true);
-                detectWallCrossing(mid_gc);
-                trace_history.add(mid_gc.get());                
-            } 
-        } else {
-            detectWallCrossing(new_gc);
-            grid.get(curr_gc).setTrace(true);
-            trace_history.add(curr_gc.get());
+            mid_gcs.add(mid_gc.get());
         }
-        return true;
+        for (int i = 0; i < mid_gcs.size(); i++) {
+            mid_gc = mid_gcs.get(i);
+            grid.get(mid_gc).setTrace(true);
+            detectWallCrossing(mid_gc);
+            trace_history.add(mid_gc.get());
+        } 
+        detectWallCrossing(new_gc);
+        set(false);
+        curr_gc = new_gc.get();
+        cursors[0].set(true);
+        cursors[1].set(true);
     }
 
     void detectWallCrossing(PVector new_gc) {
@@ -478,7 +486,6 @@ class Cursor {
     }
 
     void back(int n) {
-        //if (trace_history.size() == 0) return;
         int m = min(n, trace_history.size());
         for (int i = 0; i < m; i++) {
             grid.get(curr_gc).setTrace(false);
@@ -488,18 +495,19 @@ class Cursor {
             set(true);
             trace_history.remove(trace_history.size()-1);
         }
-        replayHistory();
+        grid.resetWallStates();
+        cursors[0].replayHistory();
+        cursors[1].replayHistory();
     }
 
     void replayHistory() {
-        grid.resetWallStates();
         curr_wall_id = -1;
         prev_zone_id = -1;
         for (int i = 0; i < trace_history.size(); i++) {
             detectWallCrossing(trace_history.get(i));
             grid.get(trace_history.get(i)).setTrace(true);
         }
-        detectWallCrossing(cursor.curr_gc);
+        detectWallCrossing(curr_gc);
         grid.updateWallStates();
     }
     
