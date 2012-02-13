@@ -15,7 +15,6 @@ void setup() {
     int nc = grid.n_cols;
 
     // square
-    /*
     grid.addAnchor(nr/4+1, nc/4);
     grid.addAnchor(nr/4+1, nc/4*3+1);
     grid.addAnchor(nr/4*3+1, nc/4);
@@ -24,8 +23,8 @@ void setup() {
     grid.addWall(1, 3);
     grid.addWall(3, 2);
     grid.addWall(2, 0);
-    */
 
+    /*
     grid.addAnchor(1 + nr/4, 1 + nc/8);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + nc/8*3);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + 2 * nc/8*3);
@@ -55,6 +54,7 @@ void setup() {
     grid.addWall(8, 9);
     grid.addWall(9, 10);
     grid.addWall(10, 11);
+    */
     
     grid.finalizeWallAnchors();
     grid.findZones();
@@ -86,7 +86,7 @@ void setup() {
     reset_btn_data.add(new PVector(7, 5));
     reset_btn_data.add(new PVector(7, 6));   
     grid.addButton(reset_btn_data, new PVector(6, 6), 
-                   new PVector(0, 200, 0), new PVector(0, 255, 0));
+                   new PVector(200, 200, 0), new PVector(255, 255, 0));
 
     ArrayList<PVector> back_btn_data = new ArrayList();
     for (int i = 0; i < 10; i++) {
@@ -503,7 +503,7 @@ class Cell {
     }
 
     void display() {
-        stroke(80); // grey outline
+        stroke(75, 75, 75); // grey outline
         if (has_cursor) {
             if (is_cursor_active) {
                 fill(255, 255, 0); // yellow
