@@ -99,11 +99,6 @@ void draw() {
     grid.updateButtonTimer();
 }
 
-void reset() {
-    cursors = null;
-    grid.reset();
-}
-
 void mousePressed() {
     if (mouseButton == LEFT) {
         PVector mouse_gc = grid.getCell(mouseX, mouseY);
@@ -118,20 +113,13 @@ void mousePressed() {
             } else if (cursors[1].pick(mouse_gc)) {
                 last_picked_cursor = 1;
             } else {
-                int btn_id = grid.buttonClicked(mouse_gc);
-                if (btn_id == 0) {
-                    grid.pushButton(0);
-                    reset();
-                } else if (btn_id == 1) {
-                    grid.pushButton(1);
-                    cursors[last_picked_cursor].back(n_steps_back);                    
-                }
+                grid.buttonClicked(mouse_gc);
             }
 
         }        
     } else if (mouseButton == RIGHT) {
         if (cursors != null) {
-            cursors[last_picked_cursor].back(n_steps_back);
+            grid.pushButton(1);
         }        
     }
 }
@@ -157,11 +145,9 @@ void mouseReleased() {
 void keyPressed() {
     if (key == 'r') {
         grid.pushButton(0);
-        reset();
     } else if (key == 'b') {
         if (cursors != null) {
             grid.pushButton(1);
-            cursors[last_picked_cursor].back(n_steps_back);
         }        
     }
 }
@@ -248,7 +234,11 @@ class Grid {
     }
 
     int buttonClicked(PVector mouse_gc) {
-        return get(mouse_gc).button_id;        
+        int btn_id = get(mouse_gc).button_id;        
+        if (btn_id >= 0) {
+            pushButton(btn_id);
+        }
+        return btn_id;
     }
 
     void pushButton(int btn_id) {
@@ -265,6 +255,12 @@ class Grid {
         if (btn_timer_started_at > 0) {
             if (millis() - btn_timer_started_at >= btn_timer_delay) {
                 updateButton(btn_timer_id, false);
+                if (btn_timer_id == 0) {
+                    cursors = null;
+                    reset();
+                } else if (btn_timer_id == 1) {
+                    cursors[last_picked_cursor].back(n_steps_back);
+                }
                 btn_timer_started_at = -1;
                 btn_timer_id = -1;
             }
@@ -384,7 +380,7 @@ class Grid {
 
     void reset() {
         for (int i = 0; i < n_rows + 2; i++) {
-            for (int j = 0; j < n_cols + 2; j++) {
+            for (int j = 0; j < n_cols + 2; j++) {                
                 get(i, j).reset();
             }
         }
