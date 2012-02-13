@@ -60,37 +60,53 @@ void setup() {
     grid.findZones();
     //grid.showZones();
 
+    // button border
     ArrayList<PVector> reset_btn_data = new ArrayList();
-    reset_btn_data.add(new PVector(1, 3));
-    reset_btn_data.add(new PVector(1, 4));
-    reset_btn_data.add(new PVector(1, 6));
-    reset_btn_data.add(new PVector(2, 2));
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            if (i == 0 || i == 9 || j == 0 || j == 9) {
+                reset_btn_data.add(new PVector(i, j));
+            }
+        }
+    }
+    // button cell data
+    reset_btn_data.add(new PVector(2, 4));
     reset_btn_data.add(new PVector(2, 5));
-    reset_btn_data.add(new PVector(2, 6));
-    reset_btn_data.add(new PVector(3, 1));
-    reset_btn_data.add(new PVector(3, 4));
-    reset_btn_data.add(new PVector(3, 5));
+    reset_btn_data.add(new PVector(2, 7));
+    reset_btn_data.add(new PVector(3, 3));
     reset_btn_data.add(new PVector(3, 6));
-    reset_btn_data.add(new PVector(4, 1));
+    reset_btn_data.add(new PVector(3, 7));
+    reset_btn_data.add(new PVector(4, 2));
+    reset_btn_data.add(new PVector(4, 5));
+    reset_btn_data.add(new PVector(4, 6));
+    reset_btn_data.add(new PVector(4, 7));
     reset_btn_data.add(new PVector(5, 2));
     reset_btn_data.add(new PVector(6, 3));
-    reset_btn_data.add(new PVector(6, 4));
-    reset_btn_data.add(new PVector(6, 5));   
-    grid.addButton(reset_btn_data, new PVector(5, 5), 
+    reset_btn_data.add(new PVector(7, 4));
+    reset_btn_data.add(new PVector(7, 5));
+    reset_btn_data.add(new PVector(7, 6));   
+    grid.addButton(reset_btn_data, new PVector(6, 6), 
                    new PVector(0, 200, 0), new PVector(0, 255, 0));
 
     ArrayList<PVector> back_btn_data = new ArrayList();
-    back_btn_data.add(new PVector(1, 3));
-    back_btn_data.add(new PVector(2, 2));
-    back_btn_data.add(new PVector(3, 1));
-    back_btn_data.add(new PVector(3, 2));
+    for (int i = 0; i < 10; i++) {
+        for (int j = 0; j < 10; j++) {
+            if (i == 0 || i == 9 || j == 0 || j == 9) {
+                back_btn_data.add(new PVector(i, j));            
+            }
+        }
+    }
+    back_btn_data.add(new PVector(2, 4));
     back_btn_data.add(new PVector(3, 3));
-    back_btn_data.add(new PVector(3, 4));
-    back_btn_data.add(new PVector(3, 5));
-    back_btn_data.add(new PVector(3, 6));
     back_btn_data.add(new PVector(4, 2));
-    back_btn_data.add(new PVector(5, 3));    
-    grid.addButton(back_btn_data, new PVector(5, grid.n_cols - 15), 
+    back_btn_data.add(new PVector(4, 3));
+    back_btn_data.add(new PVector(4, 4));
+    back_btn_data.add(new PVector(4, 5));
+    back_btn_data.add(new PVector(4, 6));
+    back_btn_data.add(new PVector(4, 7));
+    back_btn_data.add(new PVector(5, 3));
+    back_btn_data.add(new PVector(6, 4));    
+    grid.addButton(back_btn_data, new PVector(6, grid.n_cols - 14), 
                    new PVector(0, 0, 200), new PVector(0, 0, 255));
 
 }
@@ -110,8 +126,12 @@ void mousePressed() {
         if (cursors != null) {
             if (cursors[0].pick(mouse_gc)) {
                 last_picked_cursor = 0;
+                cursors[0].setActive(true);
+                cursors[1].setActive(false);
             } else if (cursors[1].pick(mouse_gc)) {
                 last_picked_cursor = 1;
+                cursors[0].setActive(false);
+                cursors[1].setActive(true);
             } else {
                 grid.buttonClicked(mouse_gc);
             }
@@ -205,25 +225,20 @@ class Grid {
         int btn_id = button_data.size();
         int top = int(topleft_gc.x);
         int left = int(topleft_gc.y);
+        // button background must also be set 
         for (int i = 0; i < 10; i++) {
             for (int j = 0; j < 10; j++) {
-                if (i == 0 || i == 9 || j == 0 || j == 9) {
-                    data.add(new PVector(i-1, j-1));
-                } else {
-                    get(top + i, left + j).setButton(btn_id, null, null);
-                }
+                get(top + i, left + j).setButton(btn_id, null, null);
             }
         }
-        //button_data.add(data);
-        ArrayList<PVector> updated_data = new ArrayList();
+        ArrayList<PVector> data_tl = new ArrayList(); // data repositioned at topleft
         for (int i = 0; i < data.size(); i++) {
             PVector gc = data.get(i);
-            gc.x += (top + 2);
-            gc.y += (left + 2);
+            gc.add(topleft_gc);
             get(gc).setButton(btn_id, col, pcol);
-            updated_data.add(gc);
+            data_tl.add(gc);
         }        
-        button_data.add(updated_data);
+        button_data.add(data_tl);
     }
 
     void updateButton(int btn_id, boolean is_pushed) {
@@ -403,7 +418,7 @@ class Cell {
     
     PVector pos;    
     int wall_id, wall_state, zone_id, anchor_id, button_id;
-    boolean has_trace, has_cursor, is_button_pushed;
+    boolean has_trace, has_cursor, is_button_pushed, is_cursor_active;
     PVector button_color, button_push_color;
 
     Cell(float x, float y) {
@@ -418,6 +433,7 @@ class Cell {
         button_color = null;
         button_push_color = null;
         is_button_pushed = false;
+        is_cursor_active = false;
         display();
     } 
 
@@ -473,8 +489,9 @@ class Cell {
         display();
     }
 
-    void setCursor(boolean b) {
-        has_cursor = b;
+    void setCursor(boolean c, boolean a) {
+        has_cursor = c;
+        is_cursor_active = a;
         display();
     }
      
@@ -488,7 +505,11 @@ class Cell {
     void display() {
         stroke(80); // grey outline
         if (has_cursor) {
-            fill(255, 255, 0); // yellow
+            if (is_cursor_active) {
+                fill(255, 255, 0); // yellow
+            } else {
+                fill(175, 175, 0); // fader yellow
+            }
         } else if (has_trace) {
             fill(0, 0, 255); // blue
         } else if (isAnchor()) {
@@ -526,7 +547,7 @@ class Cell {
 class Cursor {
 
     PVector curr_gc;
-    boolean is_picked;
+    boolean is_picked, is_active;
     int prev_zone_id;
     int curr_wall_id;
     ArrayList<PVector> trace_history;
@@ -534,6 +555,7 @@ class Cursor {
     Cursor(PVector new_gc) {
         curr_gc = new_gc.get();        
         is_picked = false;
+        is_active = false;
         prev_zone_id = -1;
         curr_wall_id = -1;
         trace_history = new ArrayList();
@@ -544,11 +566,11 @@ class Cursor {
     void set(boolean b) {
         int i = int(curr_gc.x);
         int j = int(curr_gc.y);
-        grid.get(i-1, j).setCursor(b);
-        grid.get(i+1, j).setCursor(b);
-        grid.get(i, j).setCursor(b);
-        grid.get(i, j-1).setCursor(b);
-        grid.get(i, j+1).setCursor(b);
+        grid.get(i-1, j).setCursor(b, is_active);
+        grid.get(i+1, j).setCursor(b, is_active);
+        grid.get(i, j).setCursor(b, is_active);
+        grid.get(i, j-1).setCursor(b, is_active);
+        grid.get(i, j+1).setCursor(b, is_active);
     }
 
     boolean pick(PVector mouse_gc) {
@@ -650,6 +672,11 @@ class Cursor {
         }
         detectWallCrossing(curr_gc);
         grid.updateWallStates();
+    }
+
+    void setActive(boolean b) {
+        is_active = b;
+        set(true);
     }
     
 }
