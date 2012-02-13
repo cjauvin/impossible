@@ -15,6 +15,7 @@ void setup() {
     int nc = grid.n_cols;
 
     // square
+    /*
     grid.addAnchor(nr/4+1, nc/4);
     grid.addAnchor(nr/4+1, nc/4*3+1);
     grid.addAnchor(nr/4*3+1, nc/4);
@@ -23,8 +24,9 @@ void setup() {
     grid.addWall(1, 3);
     grid.addWall(3, 2);
     grid.addWall(2, 0);
-
-    /*
+    */
+    
+    // impossible
     grid.addAnchor(1 + nr/4, 1 + nc/8);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + nc/8*3);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + 2 * nc/8*3);
@@ -54,7 +56,6 @@ void setup() {
     grid.addWall(8, 9);
     grid.addWall(9, 10);
     grid.addWall(10, 11);
-    */
     
     grid.finalizeWallAnchors();
     grid.findZones();
