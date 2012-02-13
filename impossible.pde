@@ -120,8 +120,10 @@ void mousePressed() {
             } else {
                 int btn_id = grid.buttonClicked(mouse_gc);
                 if (btn_id == 0) {
+                    grid.pushButton(0);
                     reset();
                 } else if (btn_id == 1) {
+                    grid.pushButton(1);
                     cursors[last_picked_cursor].back(n_steps_back);                    
                 }
             }
@@ -246,11 +248,7 @@ class Grid {
     }
 
     int buttonClicked(PVector mouse_gc) {
-        int btn_id = get(mouse_gc).button_id;        
-        if (btn_id >= 0) {
-            pushButton(btn_id);
-        }
-        return btn_id;
+        return get(mouse_gc).button_id;        
     }
 
     void pushButton(int btn_id) {
