@@ -14,8 +14,8 @@ void setup() {
     int nr = grid.n_rows;
     int nc = grid.n_cols;
 
+    // trivial
     /*
-    // square
     grid.addAnchor(nr/4+1, nc/4);
     grid.addAnchor(nr/4+1, nc/4*3+1);
     grid.addAnchor(nr/4*3+1, nc/4);
@@ -24,6 +24,31 @@ void setup() {
     grid.addWall(1, 3);
     grid.addWall(3, 2);
     grid.addWall(2, 0);
+    */
+
+    // easy
+    /*
+    grid.addAnchor(1 + nr/4, 1 + nc/8);
+    grid.addAnchor(1 + nr/4, 1 + nc/8 + nc/8*3);
+    grid.addAnchor(1 + nr/4, 1 + nc/8 + 2 * nc/8*3);
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8);
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8 + nc/8*3);
+    grid.addAnchor(1 + 2 * nr/4, 1 + nc/8 + 2 * nc/8*3);
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8);
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + nc/8*3);
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + 2 * nc/8*3);
+    grid.addWall(0, 1);
+    grid.addWall(1, 2);
+    grid.addWall(0, 3);
+    grid.addWall(1, 4);
+    grid.addWall(2, 5);
+    grid.addWall(3, 4);
+    grid.addWall(4, 5);
+    grid.addWall(3, 6);
+    grid.addWall(4, 7);
+    grid.addWall(5, 8);
+    grid.addWall(6, 7);
+    grid.addWall(7, 8);
     */
 
     // impossible
@@ -38,8 +63,7 @@ void setup() {
     grid.addAnchor(1 + 3 * nr/4, 1 + nc/8);
     grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + int(nc*3/16));
     grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + nc/8*3 + int(nc*3/16));
-    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + 2 * nc/8*3);
-   
+    grid.addAnchor(1 + 3 * nr/4, 1 + nc/8 + 2 * nc/8*3);   
     grid.addWall(0, 1);
     grid.addWall(1, 2);
     grid.addWall(0, 3);
