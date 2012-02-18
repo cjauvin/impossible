@@ -14,6 +14,20 @@ void setup() {
     int nr = grid.n_rows;
     int nc = grid.n_cols;
 
+    // konigsberg
+    grid.addAnchor(1 + nr/4 + 2, 1 + nc/8);
+    grid.addAnchor(1 + nr/4 + 2, 1 + nc/8 + nc/8*3);
+    grid.addAnchor(1 + nr/4 + 2, 1 + nc/8 + 2 * nc/8*3);
+    grid.addAnchor(1 + 3 * nr/4 + 2 - 5, 1 + nc/8);
+    grid.addAnchor(1 + 3 * nr/4 + 2 - 5, 1 + nc/8 + 2 * nc/8*3);
+    grid.addWall(0, 1);
+    grid.addWall(1, 2);
+    grid.addWall(2, 4);
+    grid.addWall(4, 3);
+    grid.addWall(3, 0);
+    grid.addWall(3, 1);
+    grid.addWall(1, 4);
+
     // trivial
     /*
     grid.addAnchor(nr/4+1, nc/4);
@@ -52,6 +66,7 @@ void setup() {
     */
 
     // impossible
+    /*
     grid.addAnchor(1 + nr/4, 1 + nc/8);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + nc/8*3);
     grid.addAnchor(1 + nr/4, 1 + nc/8 + 2 * nc/8*3);
@@ -80,6 +95,7 @@ void setup() {
     grid.addWall(8, 9);
     grid.addWall(9, 10);
     grid.addWall(10, 11);
+    */
     
     grid.finalizeWallAnchors();
     grid.findZones();
@@ -312,28 +328,56 @@ class Grid {
         ArrayList wall_cells = new ArrayList();
         PVector a1_gc = anchor_gcs.get(a1);
         PVector a2_gc = anchor_gcs.get(a2);
-        //assert(a1_gc.x == a2_gc.x || a1_gc.y == a2_gc.y);
-        if (abs(a1_gc.x - a2_gc.x) > abs(a1_gc.y - a2_gc.y)) {
-            if (a1_gc.x > a2_gc.x) { // swap
+        int wall_id = wall_gcs.size();
+        // vertical wall (i1==i2)
+        if (a1_gc.y == a2_gc.y) {
+            if (a1_gc.x > a2_gc.x) { // swap wrt i
                 PVector tmp = a1_gc;
                 a1_gc = a2_gc;
                 a2_gc = tmp;
             }
             int j = int(a1_gc.y);
             for (int i = int(a1_gc.x)+1; i < int(a2_gc.x); i++) {
-                get(i, j).setWall(wall_gcs.size());
+                get(i, j).setWall(wall_id);
                 wall_cells.add(new PVector(i, j));
-            }            
-        } else {
-            if (a1_gc.y > a2_gc.y) { // swap
+            }
+        // horizontal wall (j1==j2)
+        } else if (a1_gc.x == a2_gc.x) {
+            if (a1_gc.y > a2_gc.y) { // swap wrt j
                 PVector tmp = a1_gc;
                 a1_gc = a2_gc;
                 a2_gc = tmp;
             }
             int i = int(a1_gc.x);
             for (int j = int(a1_gc.y)+1; j < int(a2_gc.y); j++) {
-                get(i, j).setWall(wall_gcs.size());
+                get(i, j).setWall(wall_id);
                 wall_cells.add(new PVector(i, j));
+            }
+        // diagonal wall
+        } else {
+            //assert(abs(a1_gc.x - a2_gc.x) == abs(a1_gc.y - a2_gc.y)); // must be 45 degrees
+            if (a1_gc.y > a2_gc.y) { // swap wrt j
+                PVector tmp = a1_gc;
+                a1_gc = a2_gc;
+                a2_gc = tmp;
+            }   
+            int i, j;
+            for (int k = 0; k < int(abs(a2_gc.x - a1_gc.x)); k++) {
+                if (a1_gc.x < a2_gc.x) { // right/downward                    
+                    i = int(a1_gc.x) + k + 1;
+                } else {                 // right/upward
+                    i = int(a1_gc.x) - k;                        
+                }
+                j = int(a1_gc.y) + k;
+                get(i, j).setWall(wall_id);
+                wall_cells.add(new PVector(i, j));
+                if (a1_gc.x < a2_gc.x) { // right/downward                    
+                    get(i, j+1).setWall(wall_id);
+                    wall_cells.add(new PVector(i, j+1));
+                } else {
+                    get(i, j+1).setWall(wall_id);
+                    wall_cells.add(new PVector(i, j+1));                    
+                }
             }
         }
         wall_gcs.add(wall_cells);
@@ -432,8 +476,17 @@ class Grid {
         int anchor_id = anchor_gcs.size();
         for (int i = 0; i < wall_gcs.size(); i++) {
             ArrayList<PVector> gcs = wall_gcs.get(i);
-            get(gcs.get(0)).setAnchor(anchor_id++);
-            get(gcs.get(gcs.size()-1)).setAnchor(anchor_id++);            
+            int last = gcs.size() - 1;
+            // vertical/horizontal wall
+            if (gcs.get(0).x == gcs.get(last).x || gcs.get(0).y == gcs.get(last).y) {
+                get(gcs.get(0)).setAnchor(anchor_id++);
+                get(gcs.get(gcs.size()-1)).setAnchor(anchor_id++);            
+            } else {
+                for (int j = 0; j < 4; j++) {
+                    get(gcs.get(j)).setAnchor(anchor_id++);
+                    get(gcs.get(gcs.size()-(j+1))).setAnchor(anchor_id++);
+                }
+            }
         }
     }
 
